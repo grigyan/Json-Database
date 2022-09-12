@@ -8,8 +8,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Database {
-    private static final String DB_PATH = "src/main/java/server/data/db.json";
-    private static final File DB_FILE = new File(DB_PATH);
+    private final String DB_PATH = "src/main/java/server/data/db.json";
+    private final File DB_FILE = new File(DB_PATH);
     private final ReadWriteLock LOCK = new ReentrantReadWriteLock();
     private final Lock READ_LOCK = LOCK.readLock();
     private final Lock WRITE_LOCK = LOCK.writeLock();
@@ -32,17 +32,9 @@ public class Database {
                 return this.getByKey(request.getKey());
             case "delete":
                 return this.deleteByKey(request);
-            case "exit":
-                return this.exitResponse();
         }
 
         throw new RuntimeException("Request type is not valid");
-    }
-
-    private DatabaseResponse exitResponse() {
-        DatabaseResponse response = new DatabaseResponse();
-        response.setExit(true);
-        return response;
     }
 
     private DatabaseResponse setByKey(JsonElement key, JsonElement value) {

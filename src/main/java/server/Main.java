@@ -55,23 +55,25 @@ class Session extends Thread {
     }
 
     @Override
-    public void run() throws ArrayIndexOutOfBoundsException {
+    public void run() {
         try (DataInputStream input = new DataInputStream(socket.getInputStream());
              DataOutputStream output = new DataOutputStream(socket.getOutputStream())
         ) {
             String dbRequestJson = input.readUTF();
             DatabaseRequest request = new Gson().fromJson(dbRequestJson, DatabaseRequest.class);
-            DatabaseResponse response = database.sendRequest(request);
 
-            if (response.isExit()) {
-                response.setResponse("OK");
-                output.writeUTF(response.getJsonString());
+            if (request.isExitRequest()) {
+                DatabaseResponse exitResponse = new DatabaseResponse();
+                exitResponse.setResponse("OK");
+                output.writeUTF(exitResponse.getJsonString());
                 socket.close();
                 executor.shutdown();
             } else {
+                DatabaseResponse response = database.sendRequest(request);
                 output.writeUTF(response.getJsonString());
                 socket.close();
             }
+
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

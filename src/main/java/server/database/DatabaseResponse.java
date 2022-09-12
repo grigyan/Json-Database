@@ -8,7 +8,6 @@ public class DatabaseResponse {
     @Expose private String response;
     @Expose private String reason;
     @Expose private JsonElement value;
-    private boolean isExit;
 
     public String getResponse() {
         return response;
@@ -32,14 +31,6 @@ public class DatabaseResponse {
 
     public void setValue(JsonElement value) {
         this.value = value;
-    }
-
-    public boolean isExit() {
-        return isExit;
-    }
-
-    public void setExit(boolean exit) {
-        isExit = exit;
     }
 
     public String getJsonString() {
