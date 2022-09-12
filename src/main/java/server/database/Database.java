@@ -9,7 +9,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Database {
     private final String DB_PATH = "src/main/java/server/data/db.json";
-    private final File DB_FILE = new File(DB_PATH);
     private final ReadWriteLock LOCK = new ReentrantReadWriteLock();
     private final Lock READ_LOCK = LOCK.readLock();
     private final Lock WRITE_LOCK = LOCK.writeLock();
@@ -18,7 +17,7 @@ public class Database {
 
     public Database() {
         try {
-            database = new Gson().fromJson(new FileReader(DB_FILE), JsonObject.class);
+            database = new Gson().fromJson(new FileReader(DB_PATH), JsonObject.class);
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         }
@@ -44,13 +43,14 @@ public class Database {
         } else if (key.isJsonArray()) {
             JsonArray keys = key.getAsJsonArray();
             String toAddKey = keys.remove(keys.size() - 1).getAsString();
-            findElement(keys, true).getAsJsonObject().add(toAddKey, value);
+            createAbsentKeys(keys);
+            database.getAsJsonObject().add(toAddKey, value);
         }
         saveDatabase();
+        WRITE_LOCK.unlock();
 
         DatabaseResponse response = new DatabaseResponse();
         response.setResponse("OK");
-        WRITE_LOCK.unlock();
         return response;
     }
 
@@ -63,19 +63,23 @@ public class Database {
                 var jsonElement = database.get(key.getAsString());
                 response.setResponse("OK");
                 response.setValue(jsonElement);
+
                 return response;
             } else if (key.isJsonArray()) {
                 try {
-                    var jsonElement = findElement(key.getAsJsonArray(), false);
+                    var jsonElement = findElement(key.getAsJsonArray());
                     response.setResponse("OK");
                     response.setValue(jsonElement);
                 } catch (RuntimeException e) {
                     response.setResponse("ERROR");
                     response.setReason("No such key");
+
                     return response;
                 }
+
                 return response;
             }
+
             return null;
         } finally {
             READ_LOCK.unlock();
@@ -97,7 +101,7 @@ public class Database {
                 String toRemoveKey = keys.remove(keys.size() - 1).getAsString();
 
                 try {
-                    findElement(keys, false).getAsJsonObject().remove(toRemoveKey);
+                    findElement(keys).getAsJsonObject().remove(toRemoveKey);
                 } catch (RuntimeException e) {
                     response.setResponse("ERROR");
                     response.setReason("No such key");
@@ -115,24 +119,23 @@ public class Database {
         }
     }
 
-    private JsonElement findElement(JsonArray keys, boolean createIfAbsent) {
-        JsonElement tmp = database;
-        if (createIfAbsent) {
-            for (JsonElement key : keys) {
-                if (!tmp.getAsJsonObject().has(key.getAsString())) {
-                    tmp.getAsJsonObject().add(key.getAsString(), new JsonObject());
-                }
-                tmp = tmp.getAsJsonObject().get(key.getAsString());
+    private JsonElement findElement(JsonArray keys) {
+        JsonElement currentElement = database;
+
+        for (JsonElement key : keys) {
+            if (!key.isJsonPrimitive() || !currentElement.getAsJsonObject().has(key.getAsString())) {
+                throw new RuntimeException("No Such Key");
             }
-        } else {
-            for (JsonElement key : keys) {
-                if (!key.isJsonPrimitive() || !tmp.getAsJsonObject().has(key.getAsString())) {
-                    throw new RuntimeException("No Such Key");
-                }
-                tmp = tmp.getAsJsonObject().get(key.getAsString());
-            }
+            currentElement = currentElement.getAsJsonObject().get(key.getAsString());
         }
-        return tmp;
+
+        return currentElement;
+    }
+
+    private void createAbsentKeys(JsonArray keys) {
+        for (JsonElement key : keys) {
+            database.getAsJsonObject().add(key.getAsString(), new JsonObject());
+        }
     }
 
     private void saveDatabase() {
