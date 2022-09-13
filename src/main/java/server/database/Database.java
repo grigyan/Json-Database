@@ -86,11 +86,11 @@ public class Database {
         }
     }
 
-    private DatabaseResponse deleteByKey(DatabaseRequest requestJ) {
+    private DatabaseResponse deleteByKey(DatabaseRequest request) {
         try {
             WRITE_LOCK.lock();
             DatabaseResponse response = new DatabaseResponse();
-            JsonElement key = requestJ.getKey();
+            JsonElement key = request.getKey();
 
             if (key.isJsonPrimitive() && database.has(key.getAsString())) {
                 database.remove(key.getAsString());
