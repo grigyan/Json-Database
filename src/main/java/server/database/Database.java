@@ -1,5 +1,6 @@
 package server.database;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.*;
 
 import java.io.*;
@@ -26,17 +27,22 @@ public class Database {
     public DatabaseResponse sendRequest(DatabaseRequest request) {
         switch (request.getType()) {
             case "set":
-                return this.setByKey(request.getKey(), request.getValue());
+                var setResponse = this.setByKey(request.getKey(), request.getValue());
+                saveDatabase();
+                return setResponse;
             case "get":
                 return this.getByKey(request.getKey());
             case "delete":
-                return this.deleteByKey(request);
+                var deleteResponse = this.deleteByKey(request.getKey());
+                saveDatabase();
+                return deleteResponse;
         }
 
         throw new RuntimeException("Request type is not valid");
     }
 
-    private DatabaseResponse setByKey(JsonElement key, JsonElement value) {
+    @VisibleForTesting
+    public DatabaseResponse setByKey(JsonElement key, JsonElement value) {
         WRITE_LOCK.lock();
         if (key.isJsonPrimitive()) {
             database.add(key.getAsString(), value);
@@ -46,7 +52,6 @@ public class Database {
             createAbsentKeys(keys);
             database.getAsJsonObject().add(toAddKey, value);
         }
-        saveDatabase();
         WRITE_LOCK.unlock();
 
         DatabaseResponse response = new DatabaseResponse();
@@ -54,7 +59,8 @@ public class Database {
         return response;
     }
 
-    private DatabaseResponse getByKey(JsonElement key) {
+    @VisibleForTesting
+    public DatabaseResponse getByKey(JsonElement key) {
         try {
             READ_LOCK.lock();
             DatabaseResponse response = new DatabaseResponse();
@@ -86,11 +92,11 @@ public class Database {
         }
     }
 
-    private DatabaseResponse deleteByKey(DatabaseRequest request) {
+    @VisibleForTesting
+    public DatabaseResponse deleteByKey(JsonElement key) {
         try {
             WRITE_LOCK.lock();
             DatabaseResponse response = new DatabaseResponse();
-            JsonElement key = request.getKey();
 
             if (key.isJsonPrimitive() && database.has(key.getAsString())) {
                 database.remove(key.getAsString());
@@ -114,7 +120,6 @@ public class Database {
 
             return response;
         } finally {
-            saveDatabase();
             WRITE_LOCK.unlock();
         }
     }
@@ -138,7 +143,7 @@ public class Database {
         }
     }
 
-    private void saveDatabase() {
+    public void saveDatabase() {
         try (FileWriter writer = new FileWriter(DB_PATH)) {
             writer.write(new GsonBuilder()
                     .setPrettyPrinting()
