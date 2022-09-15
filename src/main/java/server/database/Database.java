@@ -96,7 +96,9 @@ public class Database {
                 return response;
             }
 
-            return null;
+            response.setResponse("ERROR");
+            response.setReason("No such key");
+            return response;
         } finally {
             READ_LOCK.unlock();
         }
@@ -118,11 +120,12 @@ public class Database {
                 String toRemoveKey = keys.remove(keys.size() - 1).getAsString();
 
                 try {
-                    if (!findElement(keys).getAsJsonObject().has(toRemoveKey)) {
+                    JsonObject parentJson = findElement(keys).getAsJsonObject();
+                    if (!parentJson.has(toRemoveKey)) {
                         throw new RuntimeException();
                     }
 
-                    findElement(keys).getAsJsonObject().remove(toRemoveKey);
+                    parentJson.remove(toRemoveKey);
                 } catch (RuntimeException e) {
                     response.setResponse("ERROR");
                     response.setReason("No such key");
@@ -144,6 +147,10 @@ public class Database {
         JsonElement currentElement = database;
 
         for (JsonElement key : keys) {
+            if (!currentElement.getAsJsonObject().has(key.getAsString())) {
+                throw new RuntimeException();
+            }
+
             currentElement = currentElement.getAsJsonObject().get(key.getAsString());
         }
 
