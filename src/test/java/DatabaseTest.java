@@ -1,12 +1,17 @@
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import server.database.Database;
 import server.database.DatabaseResponse;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,9 +80,22 @@ public class DatabaseTest {
                         "   }\n" +
                         "}", "{\"type\":\"get\",\"key\":[\"person\",\"car\",\"year\"]}", "{\"response\":\"OK\",\"value\":\"2018\"}"),
                 Arguments.of("{\"type\":\"set\",\"key\":\"1\",\"value\":\"Hello world!\"}",
-                        "{\"type\":\"get\",\"key\":[\"person\",\"car\",\"year\"]}",
+                        "{\"type\":\"get\",\"key\":\"dummy\"}",
                         "{\"response\":\"ERROR\",\"reason\":\"No such key\"}")
         );
+    }
+
+    static Database database;
+    private static final String TEST_DB_PATH = "src/test/java/database/testDb.json";
+    @BeforeAll
+    public static void initDatabase() throws FileNotFoundException {
+        database = new Database(TEST_DB_PATH);
+    }
+
+    @AfterEach
+    public void clearDbFile() throws IOException {
+        new PrintWriter(TEST_DB_PATH).close();
+        Files.write(Path.of(TEST_DB_PATH), "{}".getBytes());
     }
 
     @ParameterizedTest
@@ -85,7 +103,6 @@ public class DatabaseTest {
     @DisplayName("setByKey test")
     void shouldAddToDatabase(String request, String expectedResponse) {
         // given
-        Database database = new Database();
         JsonParser parser = new JsonParser();
 
         JsonElement key = JsonParser.parseString(request)
@@ -107,7 +124,6 @@ public class DatabaseTest {
     @DisplayName("deleteByKey test")
     void shouldDeleteFromDatabase(String toAddJson, String request, String expectedResponse) {
         // given
-        Database database = new Database();
         JsonParser parser = new JsonParser();
 
         var toAddJsonKey = JsonParser.parseString(toAddJson)
@@ -135,7 +151,6 @@ public class DatabaseTest {
     @DisplayName("getByKey test")
     void shouldGetFromDatabase(String toAddJson, String request, String expectedResponse) {
         // given
-        Database database = new Database();
         JsonParser parser = new JsonParser();
 
         var toAddJsonKey = JsonParser.parseString(toAddJson)
