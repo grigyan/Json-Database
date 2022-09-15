@@ -118,6 +118,10 @@ public class Database {
                 String toRemoveKey = keys.remove(keys.size() - 1).getAsString();
 
                 try {
+                    if (!findElement(keys).getAsJsonObject().has(toRemoveKey)) {
+                        throw new RuntimeException();
+                    }
+
                     findElement(keys).getAsJsonObject().remove(toRemoveKey);
                 } catch (RuntimeException e) {
                     response.setResponse("ERROR");
