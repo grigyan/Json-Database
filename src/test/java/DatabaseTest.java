@@ -1,6 +1,10 @@
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -8,6 +12,7 @@ import server.database.Database;
 import server.database.DatabaseResponse;
 
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
@@ -17,6 +22,30 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DatabaseTest {
+    private static final String TEST_DB_PATH = "src/test/java/database/testDb.json";
+    static Database database;
+
+    private static Stream<Arguments> saveDbArgs() {
+        return Stream.of(
+                Arguments.of("{\n" +
+                        "   \"type\":\"set\",\n" +
+                        "   \"key\":\"person\",\n" +
+                        "   \"value\":{\n" +
+                        "      \"name\":\"Elon Musk\",\n" +
+                        "      \"car\":{\n" +
+                        "         \"model\":\"Tesla Roadster\",\n" +
+                        "         \"year\":\"2018\"\n" +
+                        "      },\n" +
+                        "      \"rocket\":{\n" +
+                        "         \"name\":\"Falcon 9\",\n" +
+                        "         \"launches\":\"87\"\n" +
+                        "      }\n" +
+                        "   }\n" +
+                        "}", "{\"response\":\"OK\"}")
+        );
+    }
+
+
     private static Stream<Arguments> addToDatabaseArgs() {
         return Stream.of(
                 Arguments.of("{\"type\":\"set\",\"key\":\"primitiveKey\",\"value\":\"testValue\"}",
@@ -85,8 +114,6 @@ public class DatabaseTest {
         );
     }
 
-    static Database database;
-    private static final String TEST_DB_PATH = "src/test/java/database/testDb.json";
     @BeforeAll
     public static void initDatabase() throws FileNotFoundException {
         database = new Database(TEST_DB_PATH);
@@ -169,5 +196,31 @@ public class DatabaseTest {
 
         // then
         assertEquals(parser.parse(actualResponse.getJsonString()), parser.parse(expectedResponse));
+    }
+
+
+    @ParameterizedTest
+    @MethodSource("saveDbArgs")
+    @DisplayName("saveDb test")
+    void shouldSaveDatabaseChanges(String request) throws FileNotFoundException {
+        // given
+        JsonParser parser = new JsonParser();
+
+        JsonElement key = JsonParser.parseString(request)
+                .getAsJsonObject()
+                .get("key");
+        JsonElement value = JsonParser.parseString(request)
+                .getAsJsonObject()
+                .get("value");
+
+        // when
+        database.setByKey(key, value);
+
+        // then
+        JsonObject expected = new JsonObject();
+        expected.add(key.getAsString(), value);
+        JsonObject actual = new Gson().fromJson(new FileReader(TEST_DB_PATH), JsonObject.class);
+
+        assertEquals(expected.entrySet(), actual.entrySet());
     }
 }

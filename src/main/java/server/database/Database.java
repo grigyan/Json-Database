@@ -165,6 +165,7 @@ public class Database {
         }
     }
 
+    @VisibleForTesting
     public void saveDatabase() {
         try (FileWriter writer = new FileWriter(DB_PATH)) {
             writer.write(new GsonBuilder()
