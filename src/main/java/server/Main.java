@@ -27,7 +27,8 @@ public class Main {
         try (ServerSocket server = new ServerSocket(PORT, 50, InetAddress.getByName(ADDRESS))
         ) {
             while (!executor.isShutdown()) {
-                Session session = new Session(server.accept(), database, executor);
+                Socket socket = server.accept();
+                Session session = new Session(socket, database, executor);
                 executor.execute(session);
                 boolean terminated = executor.awaitTermination(500, TimeUnit.MILLISECONDS);
 
@@ -36,6 +37,8 @@ public class Main {
                 } else {
                     System.out.println("Timeout elapsed before termination");
                 }
+
+                socket.close();
             }
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
@@ -66,12 +69,10 @@ class Session extends Thread {
                 DatabaseResponse exitResponse = new DatabaseResponse();
                 exitResponse.setResponse("OK");
                 output.writeUTF(exitResponse.getJsonString());
-                socket.close();
                 executor.shutdown();
             } else {
                 DatabaseResponse response = database.sendRequest(request);
                 output.writeUTF(response.getJsonString());
-                socket.close();
             }
 
         } catch (IOException e) {
