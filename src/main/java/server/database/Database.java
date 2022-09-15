@@ -9,14 +9,22 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Database {
-    private final String DB_PATH = "src/main/java/server/data/db.json";
+    private String DB_PATH = "src/main/java/server/data/db.json";
     private final ReadWriteLock LOCK = new ReentrantReadWriteLock();
     private final Lock READ_LOCK = LOCK.readLock();
     private final Lock WRITE_LOCK = LOCK.writeLock();
     private final JsonObject database;
 
-
     public Database() {
+        try {
+            database = new Gson().fromJson(new FileReader(DB_PATH), JsonObject.class);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public Database(String DB_PATH) {
+        this.DB_PATH = DB_PATH;
         try {
             database = new Gson().fromJson(new FileReader(DB_PATH), JsonObject.class);
         } catch (FileNotFoundException e) {
@@ -27,15 +35,11 @@ public class Database {
     public DatabaseResponse sendRequest(DatabaseRequest request) {
         switch (request.getType()) {
             case "set":
-                var setResponse = this.setByKey(request.getKey(), request.getValue());
-                saveDatabase();
-                return setResponse;
+                return this.setByKey(request.getKey(), request.getValue());
             case "get":
                 return this.getByKey(request.getKey());
             case "delete":
-                var deleteResponse = this.deleteByKey(request.getKey());
-                saveDatabase();
-                return deleteResponse;
+                return this.deleteByKey(request.getKey());
         }
 
         throw new RuntimeException("Request type is not valid");
@@ -49,13 +53,19 @@ public class Database {
         } else if (key.isJsonArray()) {
             JsonArray keys = key.getAsJsonArray();
             String toAddKey = keys.remove(keys.size() - 1).getAsString();
-            createAbsentKeys(keys);
-            database.getAsJsonObject().add(toAddKey, value);
-        }
-        WRITE_LOCK.unlock();
 
+            createAbsentKeys(keys);
+            JsonElement currentElement = database;
+            for (JsonElement k : keys) {
+                currentElement = currentElement.getAsJsonObject().get(k.getAsString());
+            }
+            currentElement.getAsJsonObject().add(toAddKey, value);
+        }
+        saveDatabase();
+        WRITE_LOCK.unlock();
         DatabaseResponse response = new DatabaseResponse();
         response.setResponse("OK");
+
         return response;
     }
 
@@ -101,6 +111,7 @@ public class Database {
             if (key.isJsonPrimitive() && database.has(key.getAsString())) {
                 database.remove(key.getAsString());
                 response.setResponse("OK");
+                saveDatabase();
                 return response;
             } else if (key.isJsonArray()) {
                 JsonArray keys = key.getAsJsonArray();
@@ -115,6 +126,7 @@ public class Database {
                 }
 
                 response.setResponse("OK");
+                saveDatabase();
                 return response;
             }
 
@@ -128,9 +140,6 @@ public class Database {
         JsonElement currentElement = database;
 
         for (JsonElement key : keys) {
-            if (!key.isJsonPrimitive() || !currentElement.getAsJsonObject().has(key.getAsString())) {
-                throw new RuntimeException("No Such Key");
-            }
             currentElement = currentElement.getAsJsonObject().get(key.getAsString());
         }
 
@@ -138,8 +147,10 @@ public class Database {
     }
 
     private void createAbsentKeys(JsonArray keys) {
+        JsonElement currentElement = database;
+
         for (JsonElement key : keys) {
-            database.getAsJsonObject().add(key.getAsString(), new JsonObject());
+            currentElement = currentElement.getAsJsonObject().get(key.getAsString());
         }
     }
 
