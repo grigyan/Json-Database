@@ -115,7 +115,7 @@ public class DatabaseTest {
     }
 
     @BeforeAll
-    public static void initDatabase() throws FileNotFoundException {
+    public static void initDatabase() {
         database = new Database(TEST_DB_PATH);
     }
 
