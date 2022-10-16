@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DatabaseTest {
-    private static final String TEST_DB_PATH = "src/test/java/database/testDb.json";
+    private static final String TEST_DB_PATH = "src/test/java/resources/testDb.json";
     static Database database;
 
     private static Stream<Arguments> saveDbArgs() {

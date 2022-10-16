@@ -8,7 +8,7 @@ To start the program you firstly need to run ```src/main/java/server/Main.java``
 
 After the server is up and running the client can make requests to the database which is stored on the server.
 
-Database is stored in ```src/main/java/server/data/db.json``` file.
+Database is stored in ```src/main/java/server/resources/db.json``` file.
 
 Client can make three types of requests: ```get```, ```set``` and ```delete```.
 
@@ -23,8 +23,8 @@ Example requests:
 
     ```-t``` is the type of the request. ```-k``` is the key of JSON object. ```-v``` is the value of the JSON object.
 
-2. Pass the request as a JSON object inside ```src/main/java/client/data/inputJson.txt``` (or any other .txt or .json
-file inside ```data``` directory) and as a program variable to ```client/Main.java``` pass the filename in the following
+2. Pass the request as a JSON object inside ```src/main/java/client/resources/inputJson.txt``` (or any other .txt or .json
+file inside ```resources``` directory) and as a program variable to ```client/Main.java``` pass the filename in the following
 format: ```-in inputJson.txt```
 
 Note that file name should be different if you want to use other file for making requests.

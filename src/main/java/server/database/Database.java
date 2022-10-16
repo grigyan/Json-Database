@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class Database {
-    private String DB_PATH = "src/main/java/server/data/db.json";
+    private String DB_PATH = "src/main/java/server/resources/db.json";
     private final ReadWriteLock LOCK = new ReentrantReadWriteLock();
     private final Lock READ_LOCK = LOCK.readLock();
     private final Lock WRITE_LOCK = LOCK.writeLock();

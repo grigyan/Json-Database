@@ -38,6 +38,6 @@ public class ClientRequest {
     }
 
     private String getFilePath() {
-        return "src/main/java/client/data/" + fileName;
+        return "src/main/java/client/resources/" + fileName;
     }
 }
