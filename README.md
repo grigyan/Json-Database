@@ -29,6 +29,8 @@ format: ```-in inputJson.txt```
 
 Note that file name should be different if you want to use other file for making requests.
 
+_Any changes made to database are automatically saved_
+
 <h2 align="center">
 Example
 </h2>
